@@ -91,6 +91,7 @@ class CalendarLayout(BoxLayout):
         calendar_grid = self.ids['calendar_grid']
         calendar_grid.clear_widgets()
         calendar_grid_day = self.ids['calendar_grid_day']
+        calendar_grid_day.clear_widgets()
 
         # 요일 리스트 (일요일부터 토요일까지)
         weekdays = ['일', '월', '화', '수', '목', '금', '토']
