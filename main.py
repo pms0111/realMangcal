@@ -42,6 +42,7 @@ class CalendarLayout(BoxLayout):
         self.update_calendar()
         self.color_popup = None  # 팝업을 저장할 속성 추가
 
+
     def parse_color(self, color_string):
         """문자열 형식의 색상 데이터를 tuple로 변환"""
         try:
@@ -230,13 +231,15 @@ class CalendarLayout(BoxLayout):
         selected_day = int(selected_day_str)  # int로 변환하여 날짜로 사용
 
         # 선택된 날짜를 기반으로 포맷
-        selected_date = datetime(self.year, month, selected_day)
-        formatted_date = selected_date.strftime("%Y-%m-%d")
+        self.selected_date = datetime(self.year, month, selected_day)
+        formatted_date = self.selected_date.strftime("%Y-%m-%d")
 
         logging.info(formatted_date)
 
         # 팝업 내용 설정
-        popup_content = EventPopup()
+        popup_content = EventPopup(supabase_client=self.supabase_client, selected_date=self.selected_date) # 인자 전달
+
+        # 날짜 레이블 업데이트
         popup_content.ids.date_label.text = f"선택한 날짜: {formatted_date}"
 
         # 팝업 객체 생성 및 팝업을 content에 설정
@@ -270,14 +273,25 @@ class CalendarLayout(BoxLayout):
         self.update_calendar()
 
 class EventPopup(BoxLayout):
+
+    def __init__(self, supabase_client, selected_date, **kwargs):
+        super().__init__(**kwargs)
+        self.supabase_client = supabase_client  # Supabase 클라이언트 저장
+        self.selected_date = selected_date  # 선택된 날짜 저장
+        self.rounded_color = None  # 색상을 초기화
+
     popup = None  # Popup 객체를 저장할 속성
 
     def set_popup(self, popup_instance):
         """Popup 객체를 저장"""
         self.popup = popup_instance
 
-    def submit_event(self, title, content):
-        print(f"일정 제목: {title}, 내용: {content}")
+    def submit_event(self, content):
+        if supabase_helper.add_event_to_supabase(self.selected_date, content, self.rounded_color, self.supabase_client):
+            print("이벤트가 성공적으로 추가되었습니다.")
+        else:
+            print("이벤트 추가에 실패했습니다.")
+        print(f"날짜: {self.selected_date}, 내용: {content}, 색상: {self.rounded_color}")
         if self.popup:
             self.popup.dismiss()  # 팝업 창 닫기
 
@@ -290,13 +304,15 @@ class EventPopup(BoxLayout):
 
     def on_color(self, instance, color):
         # 색상 값을 반올림하여 2자리 소수로 변환
-        rounded_color = [round(c, 2) for c in color]
-        logging.info(f"선택한 색상: {rounded_color}")
+        self.rounded_color = [round(c, 2) for c in color]
+        logging.info(f"선택한 색상: {self.rounded_color}")
         # 여기에서 선택된 색상을 다른 곳에 사용할 수 있습니다.
+        
 
 class CalendarApp(App):
     def build(self):
         return CalendarLayout()
+
 
 if __name__ == '__main__':
     CalendarApp().run()
