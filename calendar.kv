@@ -23,7 +23,6 @@
             BoxLayout:
                 size_hint_x: 0.2
                 spacing: 10
-                
                 # 새로고침 버튼
                 Button:                             
                     size_hint: None, None
@@ -49,13 +48,14 @@
                         center_x: self.parent.center_x
                         center_y: self.parent.center_y
 
+
                 # 글로벌 색상 버튼
                 Button:
                     size_hint: None, None
                     pos_hint: {'center_y': 0.5}  # 버튼의 Y 위치를 중앙으로 조정
                     size: 70, 70
                     background_color: 0, 0, 0, 0
-                    on_press: root.setGlobalColor()  # 메서드 호출
+                    on_press: root.setGlobalColor()  # 새로고침 버튼 클릭 시 이벤트 처리
 
                     # 버튼을 동그랗게 그리기
                     canvas.before:
@@ -86,18 +86,107 @@
                 text: '>'
                 size_hint_x: 0.5
                 on_press: root.go_to_next_month()
+
+    # 요일 리스트 레이아웃
     GridLayout:
         id: calendar_grid_day
+        spacing: 2
         cols: 7
         rows: 1
         size_hint_y: 0.1
+        # 각 요일을 위한 BoxLayout과 Label 설정
+        BoxLayout:
+            canvas.before:
+                Color:
+                    rgba: root.selected_color
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+            Label:
+                text: "일"
+                color: 1, 1, 1, 1
+                font_name: 'NanumGothic.ttf'
+
+        BoxLayout:
+            canvas.before:
+                Color:
+                    rgba: root.selected_color
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+            Label:
+                text: "월"
+                color: 1, 1, 1, 1
+                font_name: 'NanumGothic.ttf'
+
+        BoxLayout:
+            canvas.before:
+                Color:
+                    rgba: root.selected_color
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+            Label:
+                text: "화"
+                color: 1, 1, 1, 1
+                font_name: 'NanumGothic.ttf'
+
+        BoxLayout:
+            canvas.before:
+                Color:
+                    rgba: root.selected_color
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+            Label:
+                text: "수"
+                color: 1, 1, 1, 1
+                font_name: 'NanumGothic.ttf'
+
+        BoxLayout:
+            canvas.before:
+                Color:
+                    rgba: root.selected_color
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+            Label:
+                text: "목"
+                color: 1, 1, 1, 1
+                font_name: 'NanumGothic.ttf'
+
+        BoxLayout:
+            canvas.before:
+                Color:
+                    rgba: root.selected_color
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+            Label:
+                text: "금"
+                color: 1, 1, 1, 1
+                font_name: 'NanumGothic.ttf'
+
+        BoxLayout:
+            canvas.before:
+                Color:
+                    rgba: root.selected_color
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+            Label:
+                text: "토"
+                color: 1, 1, 1, 1
+                font_name: 'NanumGothic.ttf'
 
     GridLayout:
         id: calendar_grid  # id로 calendar_grid를 지정
         cols: 7
-        rows: 6
+        rows: 
         size_hint_y: 0.9
         spacing: 2
+        padding: [0, 2, 0, 0]  # 위, 아래 간격을 5로 설정
+
 
 
     
@@ -121,14 +210,26 @@
             height: 30
         
         BoxLayout:
+            orientation: 'vertical'  # 두 버튼을 세로로 정렬
             size_hint_y: None
-            height: 40 
+            height: 100 
             spacing: 10
             
             Button:
                 text: "색상 변경"
                 font_name: 'NanumGothic.ttf'
+                size_hint_y: None
+                height: 40
                 on_press: root.setLocalColor()
+
+            Button:
+                text: "색상 초기화"
+                font_name: 'NanumGothic.ttf'
+                size_hint_y: None
+                height: 40
+                on_press: root.clearLocalColor()
+            
+            
 
 
         TextInput:
@@ -153,3 +254,47 @@
                 text: "닫기"
                 on_press: root.popup.dismiss()
                 font_name: 'NanumGothic.ttf'
+
+<LoginModalView>:
+    size_hint: 0.8, 0.5  # ModalView 크기 설정
+    auto_dismiss: False  # 자동으로 닫히지 않도록 설정
+    pos_hint: {"center_x": 0.5, "center_y": 0.5}  # 중앙에 배치
+
+    BoxLayout:
+        orientation: 'vertical'
+        padding: 10
+        spacing: 20
+
+        Label:
+            text: "로그인"
+            font_size: 24
+            size_hint_y: None
+            height: 40
+
+        TextInput:
+            id: username_input
+            hint_text: "사용자 이름"
+            multiline: False
+            size_hint_y: None
+            height: 50  # 높이를 명확히 설정
+
+        TextInput:
+            id: password_input
+            hint_text: "비밀번호"
+            password: True
+            multiline: False
+            size_hint_y: None
+            height: 50  # 높이를 명확히 설정
+
+        BoxLayout:
+            size_hint_y: None
+            height: 50
+            spacing: 10
+
+            Button:
+                text: "로그인"
+                on_press: root.login()  # 인자를 추가로 전달하지 않도록 수정
+
+            Button:
+                text: "취소"
+                on_press: root.dismiss()  # ModalView 닫기
