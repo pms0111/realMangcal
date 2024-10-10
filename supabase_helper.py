@@ -108,11 +108,32 @@ def clear_color_for_date(date: str, supabase_client: Client):
     try:
         response = supabase_client.table('minsik_calender').update({'btn_color': None}).eq('schedule_day', date).execute()
         if response.data:
-            print(f"{date}의 btn_color가 초기화되었습니다.")
             return True
         else:
-            print("해당 날짜의 btn_color 초기화에 실패했습니다.")
             return False
     except Exception as e:
         print(f"btn_color 초기화 중 오류 발생: {e}")
+        return False
+    
+# 특정 날짜 row가 Empty, Null 상태일 때 해당 row 삭제
+def delete_empty_rows_for_date(formatted_date, supabase_client):
+    """해당 날짜의 schedule_value와 btn_color가 Empty 또는 Null일 때 해당 행 삭제"""
+    print(f"삭제 조건: 날짜 = {formatted_date}")
+
+    # 삭제할 데이터를 가져오기
+    existing_event = get_event_by_date(formatted_date, supabase_client)
+    
+    if existing_event:
+        print(f"삭제할 행 - schedule_value: {existing_event.get('schedule_value')}, btn_color: {existing_event.get('btn_color')}")
+
+
+    response = supabase_client.table('minsik_calender').delete().match({
+        'schedule_day': formatted_date,  # 해당 날짜에 맞는 행을 찾아야 합니다.
+    }).or_('schedule_value.is.null, schedule_value.eq."", btn_color.is.null, btn_color.eq.""').execute()
+
+    if response.data:  # 삭제가 성공적이면 data는 비어있지 않음
+        print(f"{formatted_date}의 빈 행이 성공적으로 삭제되었습니다.")
+        return True
+    else:
+        print(f"{formatted_date}의 행이 존재하지 않아 삭제할 수 없습니다.")
         return False

@@ -3,15 +3,16 @@ import os
 import json
 from datetime import datetime, timedelta
 from kivy.app import App
-from kivy.graphics import Color, Rectangle  # Color와 Rectangle 임포트
+from kivy.core.window import Window
+from kivy.graphics import Color, Rectangle, Line  # Color와 Rectangle 임포트
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.colorpicker import ColorPicker
 from kivy.uix.textinput import TextInput
 from kivy.uix.modalview import ModalView
-from kivy.properties import NumericProperty, ListProperty
 from kivy.uix.popup import Popup
+from kivy.properties import NumericProperty, ListProperty
 from supabase import Client
 import supabase_helper
 import ast  # 문자열을 tuple로 변환하기 위해 사용
@@ -21,6 +22,7 @@ logging.basicConfig(level=logging.INFO)
 
 LOGIN_FILE = "login_info.json"  # 로그인 정보를 저장할 파일
 global_color = [1, 1, 1, 1]  # 기본 값으로 흰색을 설정
+Window.clearcolor = (0, 0.125, 0.2, 1) # kivy 전체 백그라운드 색상
 
 class LoginModal(ModalView):
     def __init__(self, calendar_layout, supabase_client, **kwargs):
@@ -266,6 +268,12 @@ class CalendarLayout(BoxLayout):
         previous_month_events = self.get_events_for_month(self.year if self.month > 1 else self.year - 1, 12 if self.month == 1 else self.month - 1)
         next_month_events = self.get_events_for_month(self.year if self.month < 12 else self.year + 1, 1 if self.month == 12 else self.month + 1)
 
+
+        # 오늘 날짜 가져오기
+        today = datetime.today()
+        today_str = today.strftime('%Y-%m-%d')  # YYYY-MM-DD 형식으로 변환
+
+
         # 요일 맞추기 위해 이전 달의 날짜와 일정 채우기
         for day in range(first_weekday):
             prev_day = previous_month_last_day - first_weekday + day + 1
@@ -290,7 +298,7 @@ class CalendarLayout(BoxLayout):
                 text_color = (1, 1, 1, 1)  # 어두우면 흰색 글씨
 
             btn = Button(
-                text=event_text,    
+                text=event_text,
                 background_normal='',  # 기본 배경 이미지 제거
                 font_size='18',
                 halign='left',
@@ -352,9 +360,22 @@ class CalendarLayout(BoxLayout):
                 color=text_color,  # 글자색 설정
                 text_size=(self.width, None),
                 on_press=lambda instance, m=self.month: self.show_event_popup(instance, m))
-                
+
 
             btn.bind(size=lambda instance, size: setattr(instance, 'text_size', size))
+
+            # 현재 날짜와 같은 날짜 버튼에 얇은 하얀색 테두리 추가
+            if date_str == today_str:
+                with btn.canvas.before:
+                    # btn_color의 정반대 색상 계산
+                    opposite_color = [1 - c for c in btn_color[:3]] + [btn_color[3]]  # RGB 각 색상의 정반대 색상 계산
+                    Color(*opposite_color)  # 동적 색상 변환
+                    # 초기 테두리 생성
+                    line = Line(rectangle=(btn.x, btn.y, btn.width, btn.height), width=2)
+
+                # 버튼 크기 변경 시 테두리 업데이트
+                btn.bind(size=lambda instance, size: setattr(line, 'rectangle', (instance.x, instance.y, instance.width, instance.height)))
+
             calendar_grid.add_widget(btn)
 
         # 다음 달의 날짜와 일정 추가
@@ -475,23 +496,34 @@ class EventPopup(BoxLayout):
     def submit_event(self, content):
         # selected_date는 이미 문자열이므로 변환 없이 사용
         formatted_selected_date = self.selected_date
-        
+        print(f"content 타입: {type(content)}")
         # 기존 이벤트를 가져오는 로직
         existing_event = supabase_helper.get_event_by_date(formatted_selected_date, self.parent_layout.supabase_client)
-        
+
         # 색상을 선택하지 않았을 경우, 기존 색상을 유지
         if self.rounded_color is None and existing_event and existing_event.get("btn_color"):
             self.rounded_color = existing_event["btn_color"]
         
-        # Supabase에 업데이트 또는 추가
-        supabase_helper.upsert_event_to_supabase(
-            date=formatted_selected_date,
-            value=content,
-            btn_color=self.rounded_color,
-            supabase_client=self.parent_layout.supabase_client
-        )
-
-        print(f"일정이 성공적으로 저장되었습니다: {formatted_selected_date}")
+        # 이벤트 추가/업데이트 후, schedule_value와 btn_color가 비었는지 확인
+        if not content.strip() and not self.rounded_color:
+            # 디버깅: 조건이 만족되는지 확인
+            print("조건 만족: content와 rounded_color가 비어 있음, row 삭제")
+            # 만약 content와 btn_color가 모두 비었으면, Supabase에서 해당 날짜의 row 삭제
+            supabase_helper.delete_empty_rows_for_date(
+                formatted_date=formatted_selected_date,
+                supabase_client=self.parent_layout.supabase_client
+            )
+            print(f"{formatted_selected_date}의 빈 row가 삭제되었습니다.")
+        else:
+            # Supabase에 업데이트 또는 추가
+            print("조건 불만족: row 업데이트 또는 추가")
+            supabase_helper.upsert_event_to_supabase(
+                date=formatted_selected_date,
+                value=content,
+                btn_color=self.rounded_color,
+                supabase_client=self.parent_layout.supabase_client
+            )
+            print(f"일정이 성공적으로 저장되었습니다: {formatted_selected_date}")
         self.parent_layout.refresh_calendar()
         
         if self.popup:
